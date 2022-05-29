@@ -25,10 +25,11 @@ contract Try {
 
     bool public activeRound = false;
     bool public prizesDistributed;
-    bool isActive = true;
+    bool public isActive = true;
+    //bytes32 public bhash = blockhash(block.number + K);
 
     address public lotteryManager;
-    address[] public winners;
+    //address[] public winners;
 
     newNFT public minter;
 
@@ -56,17 +57,17 @@ contract Try {
         checkActive
         internal  
         returns (bool)
-    { 
+    {   //bytes32 bhash = blockhash(block.number + K);
         bool debug = true;
         if (debug){
             drawnNumbers[0] = 1; drawnNumbers[1] = 2; drawnNumbers[2] = 3; drawnNumbers[3] = 4; drawnNumbers[4] = 5; drawnNumbers[5] = 6;
         } else {
-            int lastExtraction = int((uint256(keccak256(abi.encode(blockhash(block.number + K), block.difficulty)))));
+            int lastExtraction = int((uint256(keccak256(abi.encode(/*blockhash(*/block.number+ K, block.difficulty, block.timestamp)))));
             for (uint j = 0; j < 5; j++){
-                lastExtraction = int((uint256(keccak256(abi.encode(abi.encode(blockhash(block.number + K), block.difficulty), lastExtraction))) % 69) + 1);
+                lastExtraction = int((uint256(keccak256(abi.encode(/*abi.encode(blockhash(*/block.number + K, block.difficulty/*)*/, block.timestamp, lastExtraction))) % 69) + 1);
                 drawnNumbers[j] = lastExtraction;
             }
-            drawnNumbers[5] = int((uint256(keccak256(abi.encode(abi.encode(blockhash(block.number + K), block.difficulty), lastExtraction))) % 29) + 1);  
+            drawnNumbers[5] = int((uint256(keccak256(abi.encode(/*abi.encode(blockhash(*/block.number + K, block.difficulty/*)*/, block.timestamp, lastExtraction))) % 29) + 1);  
         }
         return true;
     } 
@@ -80,7 +81,7 @@ contract Try {
         require(lotteryManager == msg.sender, "Only the lottery manager can start a new round.");
         roundNumber += 1;
         startingBlock = block.number;
-        delete winners;
+        //delete winners;
         delete drawnNumbers;
         delete tickets;
         prizesDistributed = false;
@@ -91,8 +92,7 @@ contract Try {
     function buy (int[6] memory numbers) //buy a ticket
         checkActive
         public 
-        payable 
-        returns (bool)
+        payable
     { 
         require(activeRound, "Lottery closed");
         require(msg.sender != lotteryManager, "Lottery manager cannot play, sigh...");
@@ -121,7 +121,9 @@ contract Try {
         require(validTicket, "Each number must be unique!");
         Ticket newTicket = new Ticket(msg.sender, numbers, roundNumber);
         tickets.push(newTicket);
-        return true;
+        if (msg.value > price){
+            payable(msg.sender).transfer(msg.value - price);
+        }
     }
 
     function drawNumbers () //ectract numbers
@@ -160,35 +162,35 @@ contract Try {
             address currentOwner = tickets[i].getOwner();
             if (count == 5 && jolly){
                 minter.rewardWinner(currentOwner, prizes[0]);
-                winners.push(currentOwner);
+                //winners.push(currentOwner);
                 prizes[0] = mint(0);
             } else if (count == 5 && !jolly){
                 minter.rewardWinner(currentOwner, prizes[1]);
-                winners.push(currentOwner);
+                //winners.push(currentOwner);
                 prizes[1] = mint(1);
             } else if (count == 4 && jolly){
                 minter.rewardWinner(currentOwner, prizes[2]);
-                winners.push(currentOwner);
+                //winners.push(currentOwner);
                 prizes[2] = mint(2);
             } else if ((count == 4 && !jolly) || (count == 3 && jolly)){
                 minter.rewardWinner(currentOwner, prizes[3]);
-                winners.push(currentOwner);
+                //winners.push(currentOwner);
                 prizes[3] = mint(3);
             } else if ((count == 3 && !jolly) || (count == 2 && jolly)){
                 minter.rewardWinner(currentOwner, prizes[4]);
-                winners.push(currentOwner);
+                //winners.push(currentOwner);
                 prizes[4] = mint(4);
             } else if ((count == 2 && !jolly) || (count == 1 && jolly)){
                 minter.rewardWinner(currentOwner, prizes[5]);
-                winners.push(currentOwner);
+                //winners.push(currentOwner);
                 prizes[5] = mint(5);
             } else if (count == 1 && !jolly){
                 minter.rewardWinner(currentOwner, prizes[6]);
-                winners.push(currentOwner);
+                //winners.push(currentOwner);
                 prizes[6] = mint(6);
             } else if (count == 0 && jolly){
                 minter.rewardWinner(currentOwner, prizes[7]);
-                winners.push(currentOwner);
+                //winners.push(currentOwner);
                 prizes[7] = mint(7);
             }
         }
@@ -222,7 +224,7 @@ contract Try {
         checkActive
         public 
         payable
-        returns(bool)
+        returns(int[6] memory)
     {
         require(activeRound, "Lottery already close!");
         require(lotteryManager == msg.sender, "Only the lottery manager can close a round.");
@@ -234,12 +236,13 @@ contract Try {
             drawNumbers(); //extract numbers
             givePrizes(); //give prizes
         }
-        return true;
+        return drawnNumbers;
     }
 
     function closeLottery ()
         public
     {
+        require(msg.sender == lotteryManager, "Only the lottery manager can close the contract.");
         isActive = false;
     }
 
