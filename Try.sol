@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+// SPDX-License-Identifier: MIT
+
 pragma solidity >=0.7.0 <0.9.0;
 
 import "./newNFT.sol";
@@ -15,8 +17,8 @@ contract Try {
    
     uint public K = 8;
     uint public m;
-    uint public price = 1 gwei; 
-
+    uint public price = 30000000 gwei;  //approximately 50€
+    
     uint256 public startingBlock;
     uint256[8] public prizes;
 
@@ -34,6 +36,10 @@ contract Try {
     newNFT public minter;
 
     Ticket[] public tickets; 
+
+    event RoundStarted(int roundNumber);
+    event RoundClosed(int[6] drawnNumbers, Ticket[] tickets);
+    event TicketBought(Ticket newTicket);
 
     constructor (uint blocks) //when a new instance is created, activate a new round and initialize a lottery manager
         payable 
@@ -81,11 +87,11 @@ contract Try {
         require(lotteryManager == msg.sender, "Only the lottery manager can start a new round.");
         roundNumber += 1;
         startingBlock = block.number;
-        //delete winners;
         delete drawnNumbers;
         delete tickets;
         prizesDistributed = false;
         activeRound = true;
+        emit RoundStarted(roundNumber);
         return true;
     }
 
@@ -124,6 +130,7 @@ contract Try {
         if (msg.value > price){
             payable(msg.sender).transfer(msg.value - price);
         }
+        emit TicketBought(newTicket);
     }
 
     function drawNumbers () //ectract numbers
@@ -224,7 +231,7 @@ contract Try {
         checkActive
         public 
         payable
-        returns(int[6] memory)
+        returns(bool)
     {
         require(activeRound, "Lottery already close!");
         require(lotteryManager == msg.sender, "Only the lottery manager can close a round.");
@@ -236,7 +243,8 @@ contract Try {
             drawNumbers(); //extract numbers
             givePrizes(); //give prizes
         }
-        return drawnNumbers;
+        emit RoundClosed(drawnNumbers, tickets);
+        return true;
     }
 
     function closeLottery ()
